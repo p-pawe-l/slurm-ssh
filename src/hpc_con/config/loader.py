@@ -21,15 +21,16 @@ def _load_raw_config(yaml_filename: str) -> dict[str, Any]:
     Returns a dict with the source filename when the file is empty,
     or a dict with the loaded config otherwise.
     """
-    config: dict[str, Any] = {"source": yaml_filename}
     with open(yaml_filename, encoding="utf-8") as file_handle:
         try:
-            config = yaml.safe_load(file_handle)
+            config: dict[str, Any] | None = yaml.safe_load(file_handle)
+            if not config: config = {} # This means that config was loaded successfully but is empty
+            config["yaml_config_filename"] = yaml_filename
+            return config
         except yaml.YAMLError as error:
             raise InvalidConfigError(
                 [ConfigError("<yaml>", str(error))], source=yaml_filename
             ) from error
-    return config
 
 
 def _parse_config(config: dict[str, Any]) -> HPC_ConConfig:
@@ -37,12 +38,6 @@ def _parse_config(config: dict[str, Any]) -> HPC_ConConfig:
     Parses config dictionary into HPC_ConConfig dataclass.
     Expects a config that passed validate_config.
     """
-    if "connection" not in config or "job" not in config:
-        raise InvalidConfigError(
-            [ConfigError("connection and job keys must be present", "missing")],
-            source=config["source"],
-        )
-
     connection_dict: dict[str, Any] = dict(config["connection"])
     job_dict: dict[str, Any] = dict(config["job"])
     if "key_file" in connection_dict:
@@ -66,10 +61,10 @@ def read_config(yaml_filename: str) -> HPC_ConConfig:
     raw_config_dict: dict[str, Any] = _load_raw_config(yaml_filename)
     errors: list[ConfigError] = validate_config(raw_config_dict)
     if errors:
-        raise InvalidConfigError(errors, source=raw_config_dict["source"])
+        raise InvalidConfigError(errors, source=raw_config_dict["yaml_config_filename"])
     config: HPC_ConConfig = _parse_config(raw_config_dict)
     job_errors = [ConfigError("job", message) for message in validate_job(config.job)]
     if job_errors:
-        raise InvalidConfigError(job_errors, source=raw_config_dict["source"])
+        raise InvalidConfigError(job_errors, source=raw_config_dict["yaml_config_filename"])
 
     return config
