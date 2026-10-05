@@ -1,0 +1,8 @@
+#!/bin/bash
+$sbatch_header
+
+set -euo pipefail
+
+$setup
+# --- job commands ---
+$commands
