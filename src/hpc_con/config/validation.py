@@ -28,8 +28,8 @@ def _type_names(types: tuple[type, ...]) -> str:
 
 
 def _unknown_key(path: str, key: Any, allowed: dict[str, Any]) -> ConfigError:
-    message = "unknown key"
-    suggestion = get_close_matches(str(key), allowed, n=1)
+    message: str = "unknown key"
+    suggestion: list[str] = get_close_matches(str(key), allowed, n=1)
     if suggestion:
         message += f", did you mean {suggestion[0]!r}?"
     return ConfigError(f"{path}.{key}", message)
@@ -96,12 +96,16 @@ def validate_config(config: Any) -> list[ConfigError]:
     if not isinstance(config, dict):
         return [ConfigError("<root>", "config must be a mapping with sections")]
 
-    errors = [
+    errors: list[ConfigError] = [
         _unknown_key("<root>", key, SECTIONS) for key in config if key not in SECTIONS
     ]
     for name, schema in SECTIONS.items():
         if name not in config:
             errors.append(ConfigError(name, "missing required section"))
         else:
-            errors += _check_section(name, config[name], schema)
+            check_section_errors: list[ConfigError] = _check_section(
+                name, config[name], schema
+            )
+            if check_section_errors:
+                errors += check_section_errors
     return errors

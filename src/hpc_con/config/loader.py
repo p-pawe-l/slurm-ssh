@@ -24,7 +24,10 @@ def _load_raw_config(yaml_filename: str) -> dict[str, Any]:
     with open(yaml_filename, encoding="utf-8") as file_handle:
         try:
             config: dict[str, Any] | None = yaml.safe_load(file_handle)
-            if not config: config = {} # This means that config was loaded successfully but is empty
+            if not config:
+                config = (
+                    {}
+                )  # This means that config was loaded successfully but is empty
             config["yaml_config_filename"] = yaml_filename
             return config
         except yaml.YAMLError as error:
@@ -65,6 +68,8 @@ def read_config(yaml_filename: str) -> HPC_ConConfig:
     config: HPC_ConConfig = _parse_config(raw_config_dict)
     job_errors = [ConfigError("job", message) for message in validate_job(config.job)]
     if job_errors:
-        raise InvalidConfigError(job_errors, source=raw_config_dict["yaml_config_filename"])
+        raise InvalidConfigError(
+            job_errors, source=raw_config_dict["yaml_config_filename"]
+        )
 
     return config
