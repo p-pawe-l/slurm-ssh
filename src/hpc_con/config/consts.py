@@ -2,8 +2,7 @@
 Schema of the config file: allowed sections, keys and their value types.
 """
 
-# key -> (allowed types, required)
-FieldSpec = tuple[tuple[type, ...], bool]
+from .types import FieldSpec
 
 CONNECTION_SCHEMA: dict[str, FieldSpec] = {
     "host": ((str,), True),

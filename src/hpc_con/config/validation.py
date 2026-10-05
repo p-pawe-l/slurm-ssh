@@ -10,8 +10,9 @@ import os
 from difflib import get_close_matches
 from typing import Any
 
-from .consts import ENV_VALUE_TYPES, SECTIONS, STRING_LISTS, FieldSpec
+from .consts import ENV_VALUE_TYPES, SECTIONS, STRING_LISTS
 from .errors import ConfigError
+from .types import FieldSpec
 
 
 def _is_type(value: Any, types: tuple[type, ...]) -> bool:
