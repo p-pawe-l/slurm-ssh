@@ -8,24 +8,20 @@ from dataclasses import dataclass, field
 @dataclass(frozen=True)
 class HPCJob:
     name: str
-    # Job payload - inserted into the script verbatim, trusted by design
     commands: list[str]
 
-    # Resources
     partition: str | None = None
     account: str | None = None
-    time: str = "01:00:00"
+    time: str = "01:00:00"  # default time is 1 hour for given job
     nodes: int = 1
     ntasks: int = 1
     cpus_per_task: int = 1
-    mem: str | None = None
+    mem: str | None = None  # this is memory per cpu
     gpus: int = 0
 
-    # Environment
     modules: list[str] = field(default_factory=list)
     env: dict[str, str] = field(default_factory=dict)
 
-    # Files (%x = job name, %j = job id)
     workdir: str | None = None
     output: str = "%x-%j.out"
     error: str = "%x-%j.err"
