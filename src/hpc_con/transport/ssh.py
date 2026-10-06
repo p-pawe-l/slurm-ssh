@@ -1,38 +1,14 @@
 import subprocess as sp
-import shlex
+
 
 from ..config import ConnectionConfig
-
-
-def _execute_local_cmd(cmd: list[str]) -> str:
-    """Execute a command on the local machine"""
-    joined_cmd_str: str = shlex.join(cmd)
-    result: sp.CompletedProcess[str] = sp.run(
-        joined_cmd_str, capture_output=True, text=True, check=True
-    )
-    return result.stdout
-
-
-def _execute_remote_cmd(ssh_base: list[str], cmd: list[str]) -> str:
-    """Execute a command on remote machine"""
-    remote_cmd_lstr: list[str] = ssh_base + cmd
-    return _execute_local_cmd(remote_cmd_lstr)
-
-
-def _build_ssh_base(connection: ConnectionConfig) -> list[str]:
-    """Build bash command for connecting to ssh"""
-    args: list[str] = ["shh", "-o", "ControlPath=~/.ssh/cm-%C"]
-    if connection.port:
-        args += ["-p", str(connection.port)]
-    if connection.key_file:
-        args += ["-i", str(connection.key_file)]
-    return args + [connection.target]
+from .utils import execute_local_cmd, execute_remote_cmd, build_ssh_base
 
 
 class SSH_RemoteHost:
     def __init__(self, connection: ConnectionConfig, verbose: bool = False) -> None:
         self.connection: ConnectionConfig = connection
-        self.ssh_base: list[str] = _build_ssh_base(self.connection)
+        self.ssh_base: list[str] = build_ssh_base(self.connection)
         self.target: str = (
             f"{self.connection.user}@{self.connection.host}"
             if self.connection.user
@@ -72,15 +48,15 @@ class SSH_RemoteHost:
 
     def run(self, argv: list[str]) -> str:
         """Run a command on the remote host"""
-        return _execute_remote_cmd(self.ssh_base, argv)
+        return execute_remote_cmd(self.ssh_base, argv)
 
     def put_file(self, local_path: str, remote_path: str) -> str:
         """Copies a file from local machine to remote one"""
-        return _execute_local_cmd(["scp", local_path, self.target + ":" + remote_path])
+        return execute_local_cmd(["scp", local_path, self.target + ":" + remote_path])
 
     def fetch_file(self, remote_path: str, local_path: str) -> str:
         """Copies a file from remote machine to local one"""
-        return _execute_local_cmd(["scp", self.target + ":" + remote_path, local_path])
+        return execute_local_cmd(["scp", self.target + ":" + remote_path, local_path])
 
     def __enter__(self) -> "SSH_RemoteHost":
         result: sp.CompletedProcess[str] = sp.run(
