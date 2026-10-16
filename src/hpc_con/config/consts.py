@@ -29,7 +29,7 @@ JOB_SCHEMA: dict[str, FieldSpec] = {
     "error": ((str,), False),
 }
 
-SECTIONS: dict[str, dict[str, FieldSpec]] = {
+SECTIONS: dict[str, dict[str, FieldSpec] | FieldSpec] = {
     "connection": CONNECTION_SCHEMA,
     "job": JOB_SCHEMA,
 }
