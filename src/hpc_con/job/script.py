@@ -49,7 +49,7 @@ def _setup(job: HPCJob) -> str:
     return "\n".join(lines) + "\n" if lines else ""
 
 
-def render_script(job: HPCJob) -> str:
+def render_script(job: HPCJob, debug: bool) -> str:
     """Validates the job and returns the generated Slurm batch script."""
     errors = validate_job(job)
     if errors:
@@ -59,4 +59,5 @@ def render_script(job: HPCJob) -> str:
         sbatch_header=_sbatch_header(job),
         setup=_setup(job),
         commands="\n".join(job.commands),
+        debug=int(debug)
     )

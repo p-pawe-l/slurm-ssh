@@ -1,8 +1,10 @@
 """
-Description of a single HPC job - plain data, no logic.
+Description of a single HPC job - plain data, no logic besides readable printing.
 """
 
 from dataclasses import dataclass, field
+
+from ..formatting import format_fields
 
 
 @dataclass(frozen=True)
@@ -25,3 +27,27 @@ class HPCJob:
     workdir: str | None = None
     output: str = "%x-%j.out"
     error: str = "%x-%j.err"
+
+    def __str__(self) -> str:
+        """Readable multi-line summary, unset fields fall back to cluster defaults."""
+        return format_fields(
+            "Job",
+            [
+                ("name", self.name),
+                ("commands", self.commands),
+                ("partition", self.partition),
+                ("account", self.account),
+                ("time", self.time),
+                ("nodes", self.nodes),
+                ("ntasks", self.ntasks),
+                ("cpus_per_task", self.cpus_per_task),
+                ("mem", self.mem),
+                ("gpus", self.gpus),
+                ("modules", self.modules),
+                ("env", self.env),
+                ("workdir", self.workdir),
+                ("output", self.output),
+                ("error", self.error),
+            ],
+            missing="(cluster default)",
+        )
