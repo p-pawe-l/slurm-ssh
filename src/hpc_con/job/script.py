@@ -49,18 +49,21 @@ def _create_options_for_sbtach_script_from_job(
     ]
 
 
-def _construct_sbatch_header(job: HPCJob) -> str:
+def _construct_sbatch_header_from_options(
+    options: list[tuple[str, str | int | None]],
+) -> str:
     # Should look something like this as a string
     # #SBATCH --job-name=your_job-name
     # ...
     # #SBTACH --time=01:00:00
     # ...
-    options: list[tuple[str, str | int | None]] = (
-        _create_options_for_sbtach_script_from_job(job)
-    )
     return "\n".join(
         f"#SBATCH --{option}={value}" for option, value in options if value
     )
+
+
+def _construct_command(coomands_collection: list[str]) -> str:
+    return "\n".join(coomands_collection)
 
 
 def _setup(job: HPCJob) -> str:
@@ -72,15 +75,30 @@ def _setup(job: HPCJob) -> str:
     return "\n".join(lines) + "\n" if lines else ""
 
 
-def render_script(job: HPCJob, debug: bool) -> str:
+def _render_script_file(content: str, filename: str) -> None:
+    """
+    User can produce file presenting executed file for SLURM
+    """
+    with open(filename, "w") as file_handle:
+        file_handle.write(content)
+
+
+def render_script(job: HPCJob, debug: bool, filename: str | None = None) -> str:
     """Validates the job and returns the generated Slurm batch script."""
-    errors = validate_job(job)
+    errors: list[str] = validate_job(job)
     if errors:
         raise JobValidationError(errors)
 
-    return _load_template().substitute(
-        sbatch_header=_construct_sbatch_header(job),
+    rendered_script: str = _load_template().substitute(
+        sbtach_header=_construct_sbatch_header_from_options(
+            _create_options_for_sbtach_script_from_job(job)
+        ),
         setup=_setup(job),
-        commands="\n".join(job.commands),
+        commands=_construct_command(),
+        # int(True) = 1 and int(False) = 0
         debug=int(debug),
     )
+    if filename:
+        _render_script_file(rendered_script)
+
+    return rendered_script
