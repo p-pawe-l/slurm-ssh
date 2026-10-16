@@ -1,7 +1,23 @@
 #!/bin/bash
 $sbatch_header
 
-set -euo pipefail
+DEBUG_MODE=$debug
+
+# --- Every return code that is different than 0 executes script immidiately ---
+set -e 
+
+# --- Debug option ---
+# --- Print every command that is being executed to stdout ---
+if [ "$DEBUG_MODE" -eq 1 ]; then
+    set -x 
+fi
+
+# --- Every refernced variable that was not declared in the scope of the script executes script immediately ---
+set -u 
+
+# --- Prevents errors in pipeline from being masked. If any command in pipeline failed, pipeline is going to 
+# --- execute with failed return code immediately 
+set -o pipefail
 
 $setup
 # --- job commands ---
