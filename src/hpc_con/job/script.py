@@ -14,7 +14,8 @@ TEMPLATE_DIRECTORY: str = "templates"
 TEMPLATE_FILE: str = "slurm_job.txt"
 ENCODING_TYPE: str = "utf-8"
 
-@cache 
+
+@cache
 # Loading Template(path.read_text(encoding=ENCDOING_TYPE)) into
 # cache so next _load_template just reads it from cache instead
 # of calling this function
@@ -25,8 +26,14 @@ def _load_template() -> Template:
     return Template(path.read_text(encoding=ENCODING_TYPE))
 
 
-def _sbatch_header(job: HPCJob) -> str:
-    options: list[tuple[str, str | int | None]] = [
+def _create_options_for_sbtach_script_from_job(
+    job: HPCJob,
+) -> list[tuple[str, str | int | None]]:
+    """
+    Converts HPCJob into itterable list with tuples.
+    Used to construct #SBATCH string for script.
+    """
+    return [
         ("job-name", job.name),
         ("partition", job.partition),
         ("account", job.account),
@@ -40,6 +47,17 @@ def _sbatch_header(job: HPCJob) -> str:
         ("output", job.output),
         ("error", job.error),
     ]
+
+
+def _construct_sbatch_header(job: HPCJob) -> str:
+    # Should look something like this as a string
+    # #SBATCH --job-name=your_job-name
+    # ...
+    # #SBTACH --time=01:00:00
+    # ...
+    options: list[tuple[str, str | int | None]] = (
+        _create_options_for_sbtach_script_from_job(job)
+    )
     return "\n".join(
         f"#SBATCH --{option}={value}" for option, value in options if value
     )
@@ -61,8 +79,8 @@ def render_script(job: HPCJob, debug: bool) -> str:
         raise JobValidationError(errors)
 
     return _load_template().substitute(
-        sbatch_header=_sbatch_header(job),
+        sbatch_header=_construct_sbatch_header(job),
         setup=_setup(job),
         commands="\n".join(job.commands),
-        debug=int(debug)
+        debug=int(debug),
     )
