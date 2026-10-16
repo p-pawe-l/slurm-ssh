@@ -10,14 +10,19 @@ from string import Template
 from .model import HPCJob
 from .validation import JobValidationError, validate_job
 
-TEMPLATE_FILE = "slurm_job.txt"
+TEMPLATE_DIRECTORY: str = "templates"
+TEMPLATE_FILE: str = "slurm_job.txt"
+ENCODING_TYPE: str = "utf-8"
 
-
-@cache
+@cache 
+# Loading Template(path.read_text(encoding=ENCDOING_TYPE)) into
+# cache so next _load_template just reads it from cache instead
+# of calling this function
 def _load_template() -> Template:
-    """Reads the batch script template shipped in the templates/ directory."""
-    path = files(__package__) / "templates" / TEMPLATE_FILE
-    return Template(path.read_text(encoding="utf-8"))
+    """Reads the batch scsript template shipped in the templates/ directory."""
+    # files(__packages__) -> should return "src/hpc_con/job" :)
+    path = files(__package__) / TEMPLATE_DIRECTORY / TEMPLATE_FILE
+    return Template(path.read_text(encoding=ENCODING_TYPE))
 
 
 def _sbatch_header(job: HPCJob) -> str:
