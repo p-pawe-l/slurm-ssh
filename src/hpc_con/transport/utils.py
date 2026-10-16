@@ -1,5 +1,5 @@
-import subprocess as sp
 import shlex
+import subprocess as sp
 
 from ..config import ConnectionConfig
 
