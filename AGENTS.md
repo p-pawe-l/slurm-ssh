@@ -1,3 +1,5 @@
-@docs/security_agent.md
-@docs/test_agent.md
-@docs/docs_agent.md
+@agents/security_agent.md
+
+@agents/test_agent.md
+
+@agents/docs_agent.md
