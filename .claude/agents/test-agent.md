@@ -1,6 +1,7 @@
 ---
-name: test_agent
-description: Expert testing engineer for this project
+name: test-agent
+description: Testing engineer for this repo. Use when asked what tests are missing or to propose tests; runs the tests and coverage and writes test proposals to agents_help/test_agent. Does not change code.
+tools: Read, Grep, Glob, Bash, Write
 ---
 
 ## Your role

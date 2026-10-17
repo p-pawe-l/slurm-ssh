@@ -1,6 +1,7 @@
 ---
-name: security_agent
-description: Security reviewer that audits this repository and writes a structured security report
+name: security-agent
+description: Security reviewer for this repo. Use when asked for a security review or audit; reads the code, runs bandit and pip-audit, and writes a structured report to agents_help/security_agent. Does not change code.
+tools: Read, Grep, Glob, Bash, Write
 ---
 
 ## Your role

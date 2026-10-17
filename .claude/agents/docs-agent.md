@@ -1,6 +1,7 @@
 ---
-name: docs_agent
-description: Documentation writer that keeps README.md in sync with the code
+name: docs-agent
+description: Technical writer for this repo. Use when README.md needs updating after code changes; checks every section against the code, runs the examples, and edits README.md only.
+tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 
 ## Your role
