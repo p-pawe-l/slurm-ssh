@@ -1,76 +1,100 @@
+import typing as typ
 import subprocess as sp
+import pathlib as ph
 
 from ..config import ConnectionConfig
-from .utils import build_ssh_base, execute_local_cmd, execute_remote_cmd
+from functools import cache
+from .utils import (
+    execute_local_cmd,
+    CommandExecutionResult,
+)
+
+# pre requirements
+# Check whether ssh is installed <- if not, propose for user to install it, list a command for installing ssh and enabling it
+# Check whether ssh daemon in running <- if not, propose for user to realod it, list a command for reloading ssh
+# Before connecting show user set commands and options for ssh connection and ask whether they are correct <- just to be sure
+
+SSH_OPTS: list[str] = [
+    "-o",
+    "ControlMaster=auto",
+    "-o",
+    "ControlPath=~/.ssh/cm-%C",
+    "-o",
+    "ControlPersist=10m",
+    "-o",
+    "BatchMode=yes",
+]
 
 
-class SSH_RemoteHost:
-    def __init__(self, connection: ConnectionConfig, verbose: bool = False) -> None:
-        self.connection: ConnectionConfig = connection
-        self.ssh_base: list[str] = build_ssh_base(self.connection)
-        self.target: str = (
-            f"{self.connection.user}@{self.connection.host}"
-            if self.connection.user
-            else self.connection.host
-        )
+@cache
+def build_ssh_base(config: ConnectionConfig) -> list[str]:
+    """
+    ssh argv up to including the target, without remote command.
+    """
+    args: list[str] = ["ssh", *SSH_OPTS]
+    if config.port:
+        args += ["-p", str(config.port)]
+    if config.key_file:
+        args += ["-i", config.key_file]
+    target: str = f"{config.user}@{config.host}"
+    return args + ["--", target]
+
+
+class SSHConnection:
+    def __init__(self, config: ConnectionConfig, verbose: bool = False) -> None:
+        self._config: ConnectionConfig = config
         self.verbose: bool = verbose
+        self._ssh_base_args: list[str] = build_ssh_base(config)
+        self.is_active: bool = False
 
-    def _verbose_start(self, connecting_result: sp.CompletedProcess[str]) -> None:
-        print("Connecting to", self.target, "...")
-        if connecting_result.returncode != 0:
-            print(
-                "Failed to connect to",
-                self.target,
-                "with error:",
-                connecting_result.stderr,
-            )
-            raise ConnectionError(
-                f"Failed to connect to {self.target} with error: {connecting_result.stderr}"
-            )
-        else:
-            print("Connected to", self.target, "successfully.")
+    def connect(self) -> CommandExecutionResult:
+        """
+        Connects you machine via ssh with other machine.
+        """
+        result = execute_local_cmd(self._ssh_base_args)
+        if result.result_returncode is 0:
+            self.is_active = True
+        return result
 
-    def _verbose_end(self, disconnecting_result: sp.CompletedProcess[str]) -> None:
-        print("Disconnecting from", self.target, "...")
-        if disconnecting_result.returncode != 0:
-            print(
-                "Failed to disconnect from",
-                self.target,
-                "with error:",
-                disconnecting_result.stderr,
-            )
-            raise ConnectionError(
-                f"Failed to disconnect from {self.target} with error: {disconnecting_result.stderr}"
-            )
-        else:
-            print("Disconnected from", self.target, "successfully.")
+    def disconnect(self) -> CommandExecutionResult:
+        if self.is_active is False:
+            return
 
-    def run(self, argv: list[str]) -> str:
-        """Run a command on the remote host"""
-        return execute_remote_cmd(self.ssh_base, argv)
-
-    def put_file(self, local_path: str, remote_path: str) -> str:
-        """Copies a file from local machine to remote one"""
-        return execute_local_cmd(["scp", local_path, self.target + ":" + remote_path])
-
-    def fetch_file(self, remote_path: str, local_path: str) -> str:
-        """Copies a file from remote machine to local one"""
-        return execute_local_cmd(["scp", self.target + ":" + remote_path, local_path])
-
-    def __enter__(self) -> "SSH_RemoteHost":
+    def __run_cmd(
+        self, argv: list[str], **kwargs: dict[str, typ.Any]
+    ) -> CommandExecutionResult:
+        """
+        Runs provided command in argv form (splitted collection of keywords for command)
+        """
         result: sp.CompletedProcess[str] = sp.run(
-            self.ssh_base[:1]
-            + ["-MNf", "-o", "ControlPersist=yes"]
-            + self.ssh_base[1:],
-            check=True,
+            argv, text=True, check=True, capture_output=True, **kwargs
         )
-        if self.verbose:
-            self._verbose_start(result)
-        return self
+        return CommandExecutionResult(
+            result_stdout=result.stdout,
+            result_stderr=result.stderr,
+            result_returncode=result.returncode,
+            result_args=result.args,
+        )
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
-        result: sp.CompletedProcess[str] = sp.run(
-            self.ssh_base[:1] + ["-o", "exit"] + self.ssh_base[1:], capture_output=True
-        )
-        if self.verbose:
-            self._verbose_end(result)
+    def __copy_files(self, files: list[ph.Path]) -> None:
+        """
+        Copy files from local machine to remote machine connected via ssh
+        """
+        ...
+
+    def __fetch_files(self) -> None:
+        """
+        Fetches files from remote machine and copy them into local machine via ssh
+        """
+        ...
+
+    def __execute_remote_cmd(
+        self, argv: list[str], **kwargs: dict[str, typ.Any]
+    ) -> typ.Optional[CommandExecutionResult]:
+        """
+        Executes command specified in argv on remote mahcine connected via ssh
+        """
+        if self.is_active is False:
+            return None
+        ssh_base_argv: list[str] = self._ssh_base_args + argv
+        return self.__run_cmd(ssh_base_argv, **kwargs)
