@@ -1,10 +1,11 @@
 """
 SSH transport to the remote HPC host.
 
-    ssh.py   - SSH_RemoteHost context manager (connection, commands, file copy)
-    utils.py - helpers for running local and remote commands
+    ssh.py   - SSHConnection (ssh argv built from ConnectionConfig, connect)
+    utils.py - helpers for running local and remote commands, not exported
 """
 
-from .ssh import SSH_RemoteHost
+from ._ssh import SSHConnection
+from .utils import CommandExecutionResult
 
-__all__ = ["SSH_RemoteHost"]
+__all__ = ["CommandExecutionResult", "SSHConnection"]
