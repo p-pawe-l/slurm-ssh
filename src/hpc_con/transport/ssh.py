@@ -76,17 +76,33 @@ class SSHConnection:
             result_args=result.args,
         )
 
-    def __copy_files(self, files: list[ph.Path]) -> None:
+    def __copy_files(self, files: list[ph.Path]) -> list[CommandExecutionResult]:
         """
         Copy files from local machine to remote machine connected via ssh
         """
-        ...
+        results: list[CommandExecutionResult] = []
+        for file in files:
+            args: list[str] = [
+                "scp",
+                str(file.absolute()),
+                f"{self.config.user}@{self.config.host}:{str(file)}",
+            ]
+            results.append(self.__run_cmd(args))
+        return results
 
-    def __fetch_files(self) -> None:
+    def __fetch_files(self, files: list[ph.Path]) -> None:
         """
         Fetches files from remote machine and copy them into local machine via ssh
         """
-        ...
+        results: list[CommandExecutionResult] = []
+        for file in files:
+            args: list[str] = [
+                "scp",
+                f"{self.config.user}@{self.config.host}:{str(file)}",
+                str(file.absolute()),
+            ]
+            results.append(self.__run_cmd(args))
+        return results
 
     def __execute_remote_cmd(
         self, argv: list[str], **kwargs: dict[str, typ.Any]
