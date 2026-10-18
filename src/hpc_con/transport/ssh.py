@@ -5,8 +5,10 @@ import pathlib as ph
 from ..config import ConnectionConfig
 from functools import cache
 from .utils import (
-    execute_local_cmd,
     CommandExecutionResult,
+    _check_if_ssh_installed,
+    _check_if_ssh_daemon_is_running,
+    _show_ssh_setup
 )
 
 # pre requirements
@@ -47,19 +49,6 @@ class SSHConnection:
         self._ssh_base_args: list[str] = build_ssh_base(config)
         self.is_active: bool = False
 
-    def connect(self) -> CommandExecutionResult:
-        """
-        Connects you machine via ssh with other machine.
-        """
-        result = execute_local_cmd(self._ssh_base_args)
-        if result.result_returncode is 0:
-            self.is_active = True
-        return result
-
-    def disconnect(self) -> CommandExecutionResult:
-        if self.is_active is False:
-            return
-
     def __run_cmd(
         self, argv: list[str], **kwargs: dict[str, typ.Any]
     ) -> CommandExecutionResult:
@@ -75,6 +64,23 @@ class SSHConnection:
             result_returncode=result.returncode,
             result_args=result.args,
         )
+
+    def connect(self) -> CommandExecutionResult:
+        """
+        Connects you machine via ssh with other machine.
+        """
+        _check_if_ssh_installed()
+        _check_if_ssh_daemon_is_running()
+        _show_ssh_setup()
+        
+        result = self.__run_cmd(self._ssh_base_args)
+        if result.result_returncode is 0:
+            self.is_active = True
+        return result
+
+    def disconnect(self) -> CommandExecutionResult:
+        if self.is_active is False:
+            return
 
     def __copy_files(self, files: list[ph.Path]) -> list[CommandExecutionResult]:
         """
@@ -98,7 +104,7 @@ class SSHConnection:
         for file in files:
             args: list[str] = [
                 "scp",
-                f"{self.config.user}@{self.config.host}:{str(file)}",
+                f"{self._config.user}@{self._config.host}:{str(file)}",
                 str(file.absolute()),
             ]
             results.append(self.__run_cmd(args))
