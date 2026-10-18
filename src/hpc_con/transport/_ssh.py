@@ -1,52 +1,22 @@
-import typing as typ
-import subprocess as sp
 import pathlib as ph
+import subprocess as sp
+import typing as typ
 
 from ..config import ConnectionConfig
-from functools import cache
 from .utils import (
     CommandExecutionResult,
-    _check_if_ssh_installed,
+    _build_ssh_base,
     _check_if_ssh_daemon_is_running,
-    _show_ssh_setup
+    _check_if_ssh_installed,
+    _show_ssh_setup,
 )
-
-# pre requirements
-# Check whether ssh is installed <- if not, propose for user to install it, list a command for installing ssh and enabling it
-# Check whether ssh daemon in running <- if not, propose for user to realod it, list a command for reloading ssh
-# Before connecting show user set commands and options for ssh connection and ask whether they are correct <- just to be sure
-
-SSH_OPTS: list[str] = [
-    "-o",
-    "ControlMaster=auto",
-    "-o",
-    "ControlPath=~/.ssh/cm-%C",
-    "-o",
-    "ControlPersist=10m",
-    "-o",
-    "BatchMode=yes",
-]
-
-
-@cache
-def build_ssh_base(config: ConnectionConfig) -> list[str]:
-    """
-    ssh argv up to including the target, without remote command.
-    """
-    args: list[str] = ["ssh", *SSH_OPTS]
-    if config.port:
-        args += ["-p", str(config.port)]
-    if config.key_file:
-        args += ["-i", config.key_file]
-    target: str = f"{config.user}@{config.host}"
-    return args + ["--", target]
 
 
 class SSHConnection:
     def __init__(self, config: ConnectionConfig, verbose: bool = False) -> None:
         self._config: ConnectionConfig = config
         self.verbose: bool = verbose
-        self._ssh_base_args: list[str] = build_ssh_base(config)
+        self._ssh_base_args: list[str] = _build_ssh_base(config)
         self.is_active: bool = False
 
     def __run_cmd(
@@ -71,10 +41,10 @@ class SSHConnection:
         """
         _check_if_ssh_installed()
         _check_if_ssh_daemon_is_running()
-        _show_ssh_setup()
-        
+        _show_ssh_setup(self._config, self._ssh_base_args)
+
         result = self.__run_cmd(self._ssh_base_args)
-        if result.result_returncode is 0:
+        if result.result_returncode == 0:
             self.is_active = True
         return result
 
@@ -82,7 +52,7 @@ class SSHConnection:
         if self.is_active is False:
             return
 
-    def __copy_files(self, files: list[ph.Path]) -> list[CommandExecutionResult]:
+    def copy_files(self, files: list[ph.Path]) -> list[CommandExecutionResult]:
         """
         Copy files from local machine to remote machine connected via ssh
         """
@@ -91,12 +61,12 @@ class SSHConnection:
             args: list[str] = [
                 "scp",
                 str(file.absolute()),
-                f"{self.config.user}@{self.config.host}:{str(file)}",
+                f"{self._config.user}@{self._config.host}:{str(file)}",
             ]
             results.append(self.__run_cmd(args))
         return results
 
-    def __fetch_files(self, files: list[ph.Path]) -> None:
+    def fetch_files(self, files: list[ph.Path]) -> None:
         """
         Fetches files from remote machine and copy them into local machine via ssh
         """
@@ -112,7 +82,7 @@ class SSHConnection:
 
     def __execute_remote_cmd(
         self, argv: list[str], **kwargs: dict[str, typ.Any]
-    ) -> typ.Optional[CommandExecutionResult]:
+    ) -> CommandExecutionResult | None:
         """
         Executes command specified in argv on remote mahcine connected via ssh
         """

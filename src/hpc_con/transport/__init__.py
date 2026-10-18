@@ -5,7 +5,7 @@ SSH transport to the remote HPC host.
     utils.py - helpers for running local and remote commands, not exported
 """
 
-from .ssh import SSHConnection
+from ._ssh import SSHConnection
 from .utils import CommandExecutionResult
 
 __all__ = ["CommandExecutionResult", "SSHConnection"]

@@ -3,6 +3,7 @@ import shutil
 import subprocess as sp
 import sys
 import typing as typ
+from functools import cache
 
 from pydantic import BaseModel, StrictInt
 
@@ -33,6 +34,32 @@ def execute_local_cmd(
         result_returncode=result.returncode,
         result_args=result.args,
     )
+
+
+SSH_OPTS: list[str] = [
+    "-o",
+    "ControlMaster=auto",
+    "-o",
+    "ControlPath=~/.ssh/cm-%C",
+    "-o",
+    "ControlPersist=10m",
+    "-o",
+    "BatchMode=yes",
+]
+
+
+@cache
+def _build_ssh_base(config: ConnectionConfig) -> list[str]:
+    """
+    ssh argv up to including the target, without remote command.
+    """
+    args: list[str] = ["ssh", *SSH_OPTS]
+    if config.port:
+        args += ["-p", str(config.port)]
+    if config.key_file:
+        args += ["-i", config.key_file]
+    target: str = f"{config.user}@{config.host}"
+    return args + ["--", target]
 
 
 class SSHSetupError(Exception):
